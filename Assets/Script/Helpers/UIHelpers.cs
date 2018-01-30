@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using System;
 
-namespace Gamesofa.Tank
+namespace UnityEngine.UI
 {
 	public static class UIHelpers
 	{
@@ -33,7 +33,7 @@ namespace Gamesofa.Tank
 		/// <summary>將Prefab產生到目標GameObject上</summary>
 		public static GameObject InstantiateChild(this Transform parent, GameObject childPrefab)
 		{
-			//GameObject child = GameObject.Instantiate<GameObject>(prefab);
+			GameObject child = GameObject.Instantiate<GameObject>(childPrefab);
 
 			childPrefab.layer = parent.gameObject.layer;
 			childPrefab.transform.SetParent(parent, false);
@@ -104,66 +104,6 @@ namespace Gamesofa.Tank
 			return localPos;
 		}
 
-		/// <summary>
-		/// 將輸入的數字變換成數字陣列 (不定長)
-		/// </summary>
-		/// <param name="value">輸入的數字</param>
-		/// <param name="digitNum">要返回至少幾位數；不夠位數時，左邊會補0</param>
-		/// <returns></returns>
-		public static byte[] DigitToArray(int value, int digitNum = 0)
-		{
-			List<byte> digitList = new List<byte>();
-			if (0 == value)
-			{
-				digitList.Add(0);
-			}
-			else
-			{
-				for (; 0 != value; value /= 10)
-					digitList.Add((byte)(value % 10));
-			}
-
-			// 不夠位數要補0
-			for (int i = digitList.Count; i < digitNum; ++i)
-				digitList.Add(0);
-
-			byte[] digitArray = digitList.ToArray();
-			System.Array.Reverse(digitArray);
-
-			return digitArray;
-		}
-
-		/// <summary> 將輸入的數字變換成數字陣列 (定長, 過短補零過長省略) </summary>
-		/// <param name="value">輸入的數字</param>
-		/// <param name="arrayLength">要返回幾位數</param>
-		/// <returns></returns>
-		public static byte[] DigitToFixedArray(int value, int arrayLength)
-		{
-			return DigitToFixedArray(value, (byte)arrayLength);
-		}
-
-		/// <summary> 將輸入的數字變換成數字陣列 (定長, 過短補零過長省略) </summary>
-		/// <param name="value">輸入的數字</param>
-		/// <param name="arrayLength">要返回幾位數</param>
-		/// <returns></returns>
-		public static byte[] DigitToFixedArray(int value, byte arrayLength)
-		{
-			byte index = (byte)(arrayLength - 1);
-			byte[] digitArray = new byte[arrayLength];
-
-			if (0 != value)
-			{
-				for (; index < arrayLength && value != 0; value /= 10)
-					digitArray[index--] =(byte)(value % 10);
-			}
-
-			for (; index < arrayLength; index--)
-				digitArray[index] = 0;
-
-			return digitArray;
-		}
-
-		
 		private static void SetIcon(Image targetImg, Sprite img, bool isPreserveAspect, bool isSetNativeSzie)
 		{
 			targetImg.enabled = true;

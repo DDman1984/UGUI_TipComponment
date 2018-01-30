@@ -79,7 +79,7 @@ namespace UnityEngine.UI
 			if (null != mHoverAction)
 				mHoverAction();
 
-			TipUIManager.Show("Test Title", "Test Content....................");
+			TipUIManager.Show("Test Title", "Test Content....................", true);
 
 			//switch (ThisTipStyle)
 			//{

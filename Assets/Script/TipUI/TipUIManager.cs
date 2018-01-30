@@ -1,33 +1,5 @@
-﻿#region 用法說明
-/*----
-CommonTipUI 用法說明：
-※各種tip ui的ResourceKey目前是從9000開始，SimpleTipItem是一個通用的tip ui樣式(黑底&白色文字)，其餘為個各自定義的tip ui
+﻿#region Note...
 
-※如果要用到通用樣式(黑底白字)的tip可以這樣call：
-	if (null != CommonTipUI.Instance.InitialNormalTipUI(想要顯示的文字內容))
-		CommonTipUI.Instance.ShowTip(eventData);
-
------------------------------------------------------------------------------------------
-
-※如果要顯示自定義樣式的tip：
-	1.建立tip prefab並且加入ResourceKey裡面
-	2.如果tip內容是動態的，可以寫一隻繼承TipContentScript的code，覆寫SetTipContent方法來管理控制tip資訊的顯示，並掛在該tip prefab上面。
-	  然後將要顯示的資料用object[]裝起來，用法如下：
-	
-	固定內容=>
-	if (null != CommonTipUI.Instance.InitialCustomTipUI(該tip的ResourceKey))
-		CommonTipUI.Instance.ShowTip(eventData);
-
-	動態內容=>
-	if (null !=  CommonTipUI.Instance.InitialCustomTipUI<剛剛寫的那隻繼承TipContentScript的code>(該tip的ResourceKey, 包裝好的object[]))
-		CommonTipUI.Instance.ShowTip(eventData);
-
------------------------------------------------------------------------------------------
-
-※tip的開&關
-	顯示tip=> CommonTipUI.Instance.ShowTip(eventData,[option]延遲顯示的時間);
-	關閉tip=> CommonTipUI.Instance.HideTip();
- ----*/
 #endregion
 
 using System.Collections;
@@ -35,14 +7,9 @@ using System.Collections.Generic;
 
 using UnityEngine.EventSystems;
 
-using Gamesofa;
-using Gamesofa.Tank;
-
-//using DG.Tweening;
-
 namespace UnityEngine.UI
 {
-	public class TipUIManager : MonoBehaviour //, IUpdate
+	public class TipUIManager : MonoBehaviour
 	{
 		public enum TipType
 		{
@@ -128,11 +95,11 @@ namespace UnityEngine.UI
 
 		private GameObject mNowTipContentObj = null;
 
-		private Coroutine mRoutin = null;
+		private Coroutine mRoutine = null;
 
-		//private Tweener mTweener = null;
+		private bool mUseTween = false;
 
-		//private Camera mRootCamera = null;
+		private Coroutine mTweenRoutine = null;
 
 		private Dictionary<TipType, GameObject> mTipDict = new Dictionary<TipType, GameObject>();
 
@@ -193,11 +160,12 @@ namespace UnityEngine.UI
 		/// <summary>Image Tip Content</summary>
 		/// <param name="root"></param>
 		/// <param name="assetImageId"></param>
-		public static void Show(string assetImageId, AnchorPivot preferredAnchor = AnchorPivot.Default)
+		public static void Show(string assetImageId, bool useTween = false, AnchorPivot preferredAnchor = AnchorPivot.Default)
 		{
 			if (null == Instance)
 				Initialize();
 
+			Instance.mUseTween = useTween;
 			Instance.StartCoroutine(Instance.WaitForUIInitial(TipType.Img, preferredAnchor, new object[1] { assetImageId }));
 		}
 
@@ -205,11 +173,12 @@ namespace UnityEngine.UI
 		/// <param name="root"></param>
 		/// <param name="topContent"></param>
 		/// <param name="bottomContent"></param>
-		public static void Show(string topContent, string bottomContent = "", AnchorPivot preferredAnchor = AnchorPivot.Default, TextAnchor topCTAnchor = TextAnchor.UpperLeft, TextAnchor bottomCTAnchor = TextAnchor.UpperLeft)
+		public static void Show(string topContent, string bottomContent = "", bool useTween = false, AnchorPivot preferredAnchor = AnchorPivot.Default, TextAnchor topCTAnchor = TextAnchor.UpperLeft, TextAnchor bottomCTAnchor = TextAnchor.UpperLeft)
 		{
 			if (null == Instance)
 				Initialize();
 
+			Instance.mUseTween = useTween;
 			Instance.StartCoroutine(Instance.WaitForUIInitial(TipType.Txt, preferredAnchor, new object[4] { topContent, bottomContent, topCTAnchor, bottomCTAnchor }));
 		}
 
@@ -222,6 +191,7 @@ namespace UnityEngine.UI
 				yield break;
 
 			mNowTipContentObj = null;
+
 			yield return CreateTip(type, ac);
 
 			while(null == mNowTipContentObj)
@@ -262,7 +232,7 @@ namespace UnityEngine.UI
 		private void WaitForAssetLoading()
 		{
 			ClearCoroutine();
-			mRoutin = StartCoroutine(DisplayUI());
+			mRoutine = StartCoroutine(DisplayUI());
 		}
 		#endregion
 
@@ -359,7 +329,7 @@ namespace UnityEngine.UI
 
 				ClearCoroutine();
 
-				mRoutin = StartCoroutine(DisplayUI());
+				mRoutine = StartCoroutine(DisplayUI());
 			}
 		}
 		#endregion
@@ -411,11 +381,13 @@ namespace UnityEngine.UI
 			img.raycastTarget = false;
 
 			GameObject imgct = new GameObject("imgContent", typeof(RectTransform), typeof(Image));
-			UIHelpers.InstantiateChild(rt, imgct);
+			imgct.transform.SetParent(rt, false);
 
 			obj.GetComponent<ImageTipScript>().Img = imgct.GetComponent<Image>();
 
-			mTipDict.Add(TipType.Img, UIHelpers.InstantiateChild(mRoot, obj));
+			obj.transform.SetParent(mRoot, false);
+
+			mTipDict.Add(TipType.Img, obj);
 			return obj;
 		}
 
@@ -451,8 +423,8 @@ namespace UnityEngine.UI
 			//text content
 			GameObject topTxtObj = new GameObject("topTxt", typeof(RectTransform), typeof(Text), typeof(LayoutElement), typeof(ContentSizeFitter));
 			GameObject bottomTxtObj = new GameObject("bottomTxt", typeof(RectTransform), typeof(Text), typeof(LayoutElement), typeof(ContentSizeFitter));
-			UIHelpers.InstantiateChild(rt, topTxtObj);
-			UIHelpers.InstantiateChild(rt, bottomTxtObj);
+			topTxtObj.transform.SetParent(rt, false);
+			bottomTxtObj.transform.SetParent(rt, false);
 
 			Text tText = topTxtObj.GetComponent<Text>();
 			tText.fontSize = 18;
@@ -477,7 +449,9 @@ namespace UnityEngine.UI
 			bottomCZ.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 			bottomCZ.enabled = false;
 
-			mTipDict.Add(TipType.Txt, UIHelpers.InstantiateChild(mRoot, obj));
+			obj.transform.SetParent(mRoot, false);
+
+			mTipDict.Add(TipType.Txt, obj);
 			return obj;
 		}
 
@@ -485,10 +459,10 @@ namespace UnityEngine.UI
 
 		private void ClearCoroutine()
 		{
-			if (null != mRoutin)
+			if (null != mRoutine)
 			{
-				StopCoroutine(mRoutin);
-				mRoutin = null;
+				StopCoroutine(mRoutine);
+				mRoutine = null;
 			}
 		}
 
@@ -505,7 +479,20 @@ namespace UnityEngine.UI
 			yield return null;
 
 			SetUIPosition();
-			StartTweenAnimation();
+
+			if (!mUseTween)
+			{
+				mCanvasGroup.alpha = 1f;
+				yield break;
+			}
+			//tween...
+			if (null != mTweenRoutine)
+			{
+				StopCoroutine(mTweenRoutine);
+				mTweenRoutine = null;
+			}
+
+			mTweenRoutine = StartCoroutine(StartTweenAnimation());
 		}
 
 		public void HideTip()
@@ -522,13 +509,14 @@ namespace UnityEngine.UI
 			if (null != mNowTipContentObj)
 				mNowTipContentObj.SetActive(false);
 
-			//if (null != mTweener)
-			//	mTweener.Kill();
 
-			if (null == mRoutin)
-				return;
+			ClearCoroutine();
 
-			StopCoroutine(mRoutin);
+			if (null != mTweenRoutine)
+			{
+				StopCoroutine(mTweenRoutine);
+				mTweenRoutine = null;
+			}
 		}
 
 		private void SetUIPosition()
@@ -547,7 +535,6 @@ namespace UnityEngine.UI
 				ResetUIPivot();
 
 				FixOutPosition();
-
 				return;
 			}
 
@@ -556,22 +543,25 @@ namespace UnityEngine.UI
 		}
 
 		/// <summary>ui淡入顯示</summary>
-		private void StartTweenAnimation()
+		IEnumerator StartTweenAnimation()
 		{
 			if (null == mCanvasGroup)
 			{
 				Debug.Log("No Find CanvasGroup");
-				return;
+				yield break;
 			}
 
 			mCanvasGroup.alpha = 0.0f;
-			mCanvasGroup.alpha = 1.0f;
+			//mCanvasGroup.alpha = 1.0f;
 
-			//mTweener = m_CanvasGroup.DOFade(1f, 0.5f);
-			//mTweener.SetAutoKill(false);
-			//mTweener.OnComplete(OnTweenComplete);
-			////mTweener.SetDelay(0.5f);
-			//mTweener.Play();
+			while (mCanvasGroup.alpha < 1f)
+			{
+				var t = Mathf.Lerp(0f, 1f, mCanvasGroup.alpha += Time.deltaTime);
+				mCanvasGroup.alpha = t;
+				yield return null;
+			}
+
+			//OnTweenComplete();
 		}
 
 		private void OnTweenComplete()

@@ -1,5 +1,4 @@
-﻿using Gamesofa.Tank;
-using System;
+﻿using System;
 
 namespace UnityEngine.UI
 {
